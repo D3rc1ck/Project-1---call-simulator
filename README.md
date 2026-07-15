@@ -82,6 +82,35 @@ won't load.)
    Then open `https://192.168.1.23:8443` on the phone and accept the
    certificate warning (Advanced → Proceed).
 
+#### Easier: expose it with a tunnel
+
+A tunnel gives you a public `https://…` URL that forwards to your local
+server, so the microphone works on the phone with **no LAN IP, firewall, or
+certificate fiddling** — the page is served over real HTTPS. The phone
+doesn't even need to be on the same Wi-Fi.
+
+Keep the plain HTTP server running (`--port 8000` as usual), then in a
+second terminal start one of:
+
+```bash
+# Cloudflare Tunnel — no account or signup needed
+cloudflared tunnel --url http://localhost:8000
+
+# ...or ngrok (free account + `ngrok config add-authtoken <token>` first)
+ngrok http 8000
+```
+
+Each prints a public URL like `https://random-name.trycloudflare.com` (or
+`https://xxxx.ngrok-free.app`). Open that on the phone — mic and all.
+
+> **Heads up:** a tunnel exposes your simulator to the public internet for
+> as long as it runs. There's no authentication in front of it, so use an
+> ad-hoc tunnel only while testing and stop it (Ctrl-C) when you're done.
+
+Install if needed:
+- **cloudflared** — macOS `brew install cloudflared`; Windows `winget install --id Cloudflare.cloudflared`; Linux [download a release](https://github.com/cloudflare/cloudflared/releases).
+- **ngrok** — [ngrok.com/download](https://ngrok.com/download) or `brew install ngrok`.
+
 ### Docker
 
 ```bash
