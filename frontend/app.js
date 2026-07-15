@@ -19,6 +19,22 @@ let recordedChunks = [];
 let recording = false;
 let busy = false;
 
+// Mobile browsers (iOS Safari in particular) only allow audio playback that
+// originates from a user gesture. We reuse a single <audio> element and
+// "unlock" it with a silent clip inside tap handlers, after which
+// programmatic playback of the caller's replies is permitted.
+const player = new Audio();
+let audioUnlocked = false;
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YRAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  player.src = SILENT_WAV;
+  player.play().catch(() => {});
+}
+
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
@@ -51,7 +67,10 @@ function renderScenarios(scenarios) {
       `<strong>${escapeHtml(s.title)}</strong>` +
       `<span>${escapeHtml(s.description)}</span>` +
       `<em>You play: ${escapeHtml(s.role)}</em>`;
-    card.addEventListener("click", () => startCall(s));
+    card.addEventListener("click", () => {
+      unlockAudio();
+      startCall(s);
+    });
     scenarioList.appendChild(card);
   }
 }
@@ -238,11 +257,11 @@ async function fetchJSON(url, opts) {
 
 function playAudio(b64) {
   return new Promise((resolve) => {
-    const audio = new Audio(`data:audio/wav;base64,${b64}`);
+    player.src = `data:audio/wav;base64,${b64}`;
     setStatus("Caller is speaking…");
-    audio.onended = resolve;
-    audio.onerror = resolve;
-    audio.play().catch(resolve);
+    player.onended = resolve;
+    player.onerror = resolve;
+    player.play().catch(resolve);
   });
 }
 
@@ -273,8 +292,14 @@ function escapeHtml(s) {
 
 // ---------------------------------------------------------------------------
 
-recordBtn.addEventListener("click", toggleRecording);
-textSendBtn.addEventListener("click", sendTextTurn);
+recordBtn.addEventListener("click", () => {
+  unlockAudio();
+  toggleRecording();
+});
+textSendBtn.addEventListener("click", () => {
+  unlockAudio();
+  sendTextTurn();
+});
 textInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") sendTextTurn();
 });

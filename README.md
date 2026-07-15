@@ -49,6 +49,39 @@ The first turn is slow while Kokoro and Whisper load; after that it's fast.
 > app via `127.0.0.1`/`localhost`, not a bare LAN IP, or use the typed-reply
 > box instead.
 
+### Testing from a phone
+
+The server runs on your computer; the phone just opens the page over Wi-Fi.
+(`http://127.0.0.1:8000` on the phone points at the phone itself, so it
+won't load.)
+
+1. Start the server bound to all interfaces:
+
+   ```bash
+   uvicorn backend.main:app --host 0.0.0.0 --port 8000
+   ```
+
+2. Find your computer's LAN address (`ipconfig` on Windows, `ip addr` or
+   `ifconfig` on Linux/macOS — something like `192.168.1.23`) and open
+   `http://192.168.1.23:8000` on the phone. Both devices must be on the
+   same network, and your OS firewall must allow inbound port 8000.
+
+3. **Microphone needs HTTPS on a phone.** Browsers only expose the mic on
+   secure origins, and a LAN IP over plain HTTP is not one — typed replies
+   still work, but the 🎤 button won't. To enable it, run with a
+   self-signed certificate:
+
+   ```bash
+   openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+     -keyout key.pem -out cert.pem -subj "/CN=call-simulator"
+
+   uvicorn backend.main:app --host 0.0.0.0 --port 8443 \
+     --ssl-keyfile key.pem --ssl-certfile cert.pem
+   ```
+
+   Then open `https://192.168.1.23:8443` on the phone and accept the
+   certificate warning (Advanced → Proceed).
+
 ### Docker
 
 ```bash
