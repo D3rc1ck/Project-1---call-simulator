@@ -2,10 +2,18 @@
 
 Pipelines are created lazily (one per language code) so the server starts
 instantly and model weights are only downloaded on first use.
+
+For air-gapped / offline deployments the weights can be supplied locally
+instead of downloading from Hugging Face:
+
+    KOKORO_CONFIG      path to config.json
+    KOKORO_MODEL       path to kokoro-v1_0.pth
+    KOKORO_VOICES_DIR  directory containing <voice>.pt files
 """
 
 import io
 import logging
+import os
 import threading
 
 import numpy as np
@@ -35,7 +43,34 @@ VOICE_IDS = {v["id"] for v in VOICES}
 DEFAULT_VOICE = "af_heart"
 
 _pipelines: dict[str, object] = {}
+_model = None
 _lock = threading.Lock()
+
+
+def _get_local_model():
+    """Build a KModel from local files when KOKORO_CONFIG/KOKORO_MODEL are set
+    (offline deployments); otherwise return None to download from HF."""
+    global _model
+    config = os.environ.get("KOKORO_CONFIG")
+    model = os.environ.get("KOKORO_MODEL")
+    if not (config and model):
+        return None
+    if _model is None:
+        logger.info("Loading local Kokoro model from %s", model)
+        from kokoro import KModel
+
+        _model = KModel(
+            repo_id="hexgrad/Kokoro-82M", config=config, model=model
+        ).eval()
+    return _model
+
+
+def _resolve_voice(voice: str) -> str:
+    """Map a voice id to a local .pt path when KOKORO_VOICES_DIR is set."""
+    voices_dir = os.environ.get("KOKORO_VOICES_DIR")
+    if voices_dir:
+        return os.path.join(voices_dir, f"{voice}.pt")
+    return voice
 
 
 def _get_pipeline(lang_code: str):
@@ -44,8 +79,11 @@ def _get_pipeline(lang_code: str):
             logger.info("Loading Kokoro pipeline for lang_code=%s ...", lang_code)
             from kokoro import KPipeline
 
+            local_model = _get_local_model()
             _pipelines[lang_code] = KPipeline(
-                lang_code=lang_code, repo_id="hexgrad/Kokoro-82M"
+                lang_code=lang_code,
+                repo_id="hexgrad/Kokoro-82M",
+                model=local_model if local_model is not None else True,
             )
             logger.info("Kokoro pipeline ready (lang_code=%s)", lang_code)
         return _pipelines[lang_code]
@@ -68,7 +106,9 @@ def synthesize(text: str, voice: str = DEFAULT_VOICE, speed: float = 1.0) -> byt
     chunks: list[np.ndarray] = []
     # Kokoro generation isn't guaranteed thread-safe; serialize it.
     with _lock:
-        for _graphemes, _phonemes, audio in pipeline(text, voice=voice, speed=speed):
+        for _graphemes, _phonemes, audio in pipeline(
+            text, voice=_resolve_voice(voice), speed=speed
+        ):
             chunks.append(audio.numpy() if hasattr(audio, "numpy") else np.asarray(audio))
 
     if not chunks:

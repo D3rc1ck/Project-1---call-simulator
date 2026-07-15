@@ -60,9 +60,18 @@ docker run -p 8000:8000 call-simulator
 
 | Env var | Default | Options |
 |---|---|---|
-| `WHISPER_MODEL` | `base` | `tiny`, `base`, `small`, `medium`, `large-v3` |
+| `WHISPER_MODEL` | `base` | `tiny`, `base`, `small`, `medium`, `large-v3`, or a path to a local CTranslate2 model directory |
 | `WHISPER_DEVICE` | `cpu` | `cpu`, `cuda`, `auto` |
 | `WHISPER_COMPUTE` | `int8` | `int8`, `int8_float16`, `float16`, `float32` |
+
+For air-gapped machines, Kokoro can also load from local files instead of
+downloading from Hugging Face:
+
+| Env var | Meaning |
+|---|---|
+| `KOKORO_CONFIG` | Path to `config.json` |
+| `KOKORO_MODEL` | Path to `kokoro-v1_0.pth` |
+| `KOKORO_VOICES_DIR` | Directory containing `<voice>.pt` files |
 
 Example with a bigger model on GPU:
 
