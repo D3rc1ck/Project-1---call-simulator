@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Call Simulator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>📞 Call Simulator</h1>
+    <p class="subtitle">Kokoro TTS &middot; Whisper STT &middot; runs 100% locally</p>
+  </header>
+
+  <!-- Scenario picker -->
+  <main id="picker-view">
+    <h2>Choose a scenario</h2>
+    <div id="scenario-list" class="scenario-list">
+      <p class="muted">Loading scenarios…</p>
+    </div>
+    <div class="voice-row">
+      <label for="voice-select">Caller voice:</label>
+      <select id="voice-select">
+        <option value="">Scenario default</option>
+      </select>
+    </div>
+  </main>
+
+  <!-- Active call -->
+  <main id="call-view" class="hidden">
+    <div class="call-header">
+      <div>
+        <h2 id="call-title"></h2>
+        <p class="muted">You are: <span id="call-role"></span></p>
+      </div>
+      <button id="end-call-btn" class="danger">End call</button>
+    </div>
+
+    <div id="transcript" class="transcript"></div>
+
+    <div class="controls">
+      <div id="status" class="status">Connecting…</div>
+      <button id="record-btn" class="record" disabled>🎤 Click to talk</button>
+      <div class="text-fallback">
+        <input id="text-input" type="text" placeholder="…or type your reply" maxlength="2000" />
+        <button id="text-send-btn">Send</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p class="muted">First request may be slow while Kokoro &amp; Whisper models load.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
